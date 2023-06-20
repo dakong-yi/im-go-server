@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 
-	conn2 "github.com/dakong-yi/im-go-server/pkg/conn"
+	"github.com/dakong-yi/im-go-server/pkg/message"
 )
 
 type Client struct {
@@ -102,7 +102,7 @@ func main() {
 	//fmt.Println(n)
 	//fmt.Println(err)
 	//fmt.Println(string(buf))
-	msg := conn2.Message{Data: "{\"user_id\":123,\"device_id\":123}", Type: 1, RequestId: 1}
+	msg := message.MessageRequest{Data: "{\"user_id\":123,\"device_id\":123}", Type: 1, RequestID: "1"}
 	//str1 := []byte(`{"type":1,"request_id":1,"data":"{\"user_id\":123,\"device_id\":123}"}`)
 	str1, _ := json.Marshal(msg)
 	client.conn.Write(str1)
