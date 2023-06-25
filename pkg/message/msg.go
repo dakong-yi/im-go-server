@@ -35,7 +35,7 @@ type MessageRequest struct {
 	Type      RequestType `json:"type"`
 }
 
-type ResponseMessage struct {
+type MessageResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
@@ -47,6 +47,7 @@ type ChatMsg struct {
 	Content     string      `json:"content"`
 	Target      string      `json:"target"`       // Only used for private messages
 	TargetGroup string      `json:"target_group"` // Only used for group messages
+	Timstamp    int64       `json:"timstamp"`
 }
 
 type SignInMsg struct {

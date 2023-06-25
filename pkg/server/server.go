@@ -8,29 +8,23 @@ import (
 	"io"
 	"log"
 	"net"
-	"sync"
-	"time"
 
-	"github.com/dakong-yi/im-go-server/pkg/conn"
+	connect "github.com/dakong-yi/im-go-server/pkg/conn"
 	"github.com/dakong-yi/im-go-server/pkg/jsonutil"
 	"github.com/dakong-yi/im-go-server/pkg/message"
+	"github.com/dakong-yi/im-go-server/pkg/request"
+	"github.com/dakong-yi/im-go-server/pkg/user"
 )
 
 type Server struct {
-	Ip        string
-	Port      int
-	OnlineMap map[string]*conn.User
-	mapLock   *sync.RWMutex
-	Message   chan string
+	Ip   string
+	Port int
 }
 
-func NewServer(ip string, port int, messageBufferSize int) *Server {
+func NewServer(ip string, port int) *Server {
 	return &Server{
-		Ip:        ip,
-		Port:      port,
-		OnlineMap: map[string]*conn.User{},
-		mapLock:   &sync.RWMutex{},
-		Message:   make(chan string, messageBufferSize),
+		Ip:   ip,
+		Port: port,
 	}
 }
 
@@ -57,83 +51,45 @@ func (s *Server) Start() {
 	}
 }
 
-func (s *Server) handleConnection(connect net.Conn) {
-	defer connect.Close()
+// 处理请求的主函数
+func (s *Server) handleConnection(conn net.Conn) {
+	defer conn.Close()
 
-	var user *conn.User
+	user := &user.User{
+		Conn: conn,
+		Addr: conn.RemoteAddr().String(),
+	}
 
-	// set up timer for heartbeat
-	timeout := time.Second * 3000
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-	go func() {
-		<-timer.C
-		// timeout, close the connection
-		log.Printf("Connection timed out, closing...\n")
-		user.Conn.Close()
-	}()
-	scanner := bufio.NewScanner(connect)
+	scanner := bufio.NewScanner(conn)
+
 	for scanner.Scan() {
-
-		// Read client input
-		var req message.MessageRequest
-		err := json.Unmarshal(scanner.Bytes(), &req)
-		// if err := jsonutil.ReadJSONMessage(connect, &req); err != nil {
+		req, err := parseRequest(scanner.Bytes())
 		if errors.Is(err, io.EOF) {
-			log.Printf("Connection closed by client %s\n", req.RequestID)
+			connect.DeleteConn(user.ID)
+			return
 		} else if err != nil {
 			log.Printf("Error reading from connection: %v\n", err)
-		}
-		// }
-		fmt.Println(req)
-		switch req.Type {
-		case message.RequestTypeChat:
-			if user == nil {
-				break
-			}
-			var chat message.ChatMsg
-			if err := json.Unmarshal([]byte(req.Data), &chat); err != nil {
-				log.Printf("Error unmarshaling chat message: %v\n", err)
-				break
-			}
-			fmt.Println(chat.Content)
-			if target, ok := s.OnlineMap[chat.Target]; ok {
-				target.Message <- chat.Content
-			}
-
-		case message.RequestTypeSignIn:
-			var signIn message.SignInMsg
-			if err := json.Unmarshal([]byte(req.Data), &signIn); err != nil {
-				log.Printf("Error unmarshaling sign-in message: %v\n", err)
-				break
-			}
-			user = &conn.User{
-				ID:      signIn.UserID,
-				Addr:    connect.RemoteAddr().String(),
-				Message: make(chan string, 10),
-				Conn:    connect,
-			}
-			fmt.Println(user.ID, user.Addr)
-			s.OnlineMap[user.ID] = user
-			go user.ListenMessage()
-		case message.RequestTypeHeartbeat:
-			timer.Reset(timeout)
-		default:
-			log.Printf("Invalid message type: %d\n", req.Type)
+			continue
 		}
 
-		resp := message.ResponseMessage{
-			Code:    0,
-			Message: "ok",
-		}
-		respBytes, _ := json.Marshal(resp)
-		response := message.MessageRequest{
-			Type:      message.RequestTypeResponse,
-			Data:      string(respBytes),
-			RequestID: "0",
-		}
-		if err := jsonutil.WriteJSONMessage(user.Conn, response); err != nil {
+		resp := (&request.RequestHandlersFacade{}).HandleRequest(req, user)
+
+		if err := writeResponse(conn, resp); err != nil {
 			log.Printf("Error sending response message: %v\n", err)
+			continue
 		}
 	}
+}
+
+func parseRequest(data []byte) (*message.MessageRequest, error) {
+	var req message.MessageRequest
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling request: %v", err)
+	}
+	return &req, nil
+}
+
+func writeResponse(connect net.Conn, response message.MessageRequest) error {
+	return jsonutil.WriteJSONMessage(connect, response)
 }

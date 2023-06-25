@@ -1,28 +1,28 @@
 package conn
 
 import (
-	"fmt"
-	"net"
+	"sync"
+
+	"github.com/dakong-yi/im-go-server/pkg/user"
 )
 
-type User struct {
-	ID      string
-	Addr    string
-	Message chan string
-	Conn    net.Conn
+var ConnsPool = sync.Map{}
+
+// SetConn 存储
+func SetConn(userID string, user *user.User) {
+	ConnsPool.Store(userID, user)
 }
 
-func (user *User) ListenMessage() {
-	for {
-		msg := <-user.Message
-		_, err := fmt.Fprintf(user.Conn, "%s\n", msg)
-		if err != nil {
-			fmt.Printf("Error sending message to user %s: %v", user.ID, err)
-			return
-		}
+// GetConn 获取
+func GetConn(userID string) *user.User {
+	value, ok := ConnsPool.Load(userID)
+	if ok {
+		return value.(*user.User)
 	}
+	return nil
 }
 
-type Group struct {
-	Users []*User
+// DeleteConn 删除
+func DeleteConn(userID string) {
+	ConnsPool.Delete(userID)
 }
