@@ -5,33 +5,26 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dakong-yi/im-go-server/internal/dto/request"
-	"github.com/dakong-yi/im-go-server/internal/dto/response"
-	"github.com/dakong-yi/im-go-server/internal/model"
-	"github.com/dakong-yi/im-go-server/internal/service"
+	"github.com/dakong-yi/im-go-server/internal/dto"
 	"github.com/goinggo/mapstructure"
 	"github.com/gorilla/websocket"
 )
 
 // SocketServer WebSocket 服务器
 type SocketServer struct {
-	upgrader            websocket.Upgrader
-	register            chan *websocket.Conn
-	unregister          chan *websocket.Conn
-	connectionManager   *ConnectionManager
-	messageService      *service.MessageService
-	conversationService *service.ConversationService
+	upgrader          websocket.Upgrader
+	register          chan *websocket.Conn
+	unregister        chan *websocket.Conn
+	connectionManager *ConnectionManager
 }
 
 // NewSocketServer 创建 SocketServer 实例
-func NewSocketServer(messageService *service.MessageService, conversationService *service.ConversationService) *SocketServer {
+func NewSocketServer() *SocketServer {
 	return &SocketServer{
-		upgrader:            websocket.Upgrader{},
-		register:            make(chan *websocket.Conn),
-		unregister:          make(chan *websocket.Conn),
-		connectionManager:   NewConnectionManager(),
-		messageService:      messageService,
-		conversationService: conversationService,
+		upgrader:          websocket.Upgrader{},
+		register:          make(chan *websocket.Conn),
+		unregister:        make(chan *websocket.Conn),
+		connectionManager: NewConnectionManager(),
 	}
 }
 
@@ -99,38 +92,119 @@ func (s *SocketServer) HandleUserLogin(conn *websocket.Conn, data map[string]int
 
 func (s *SocketServer) handleChatMessage(conn *websocket.Conn, message map[string]interface{}) {
 	// 解析消息
-	var chatMessage request.CreateMessageRequest
-	if err := mapstructure.Decode(message, &chatMessage); err != nil {
-		// 消息解析失败，处理错误逻辑
-		log.Println("Failed to parse chat message:", err)
-		return
-	}
-	// 保存消息到数据库 TODO
-	var msg *model.Message
-	var err error
-	if msg, err = s.messageService.CreateMessage(chatMessage); err != nil {
-		// 消息保存失败，处理错误逻辑
-		log.Println("Failed to save chat message:", err)
-		return
-	}
-	// 通过conversation获取接受用户id
-	userIDs, err := s.conversationService.GetUsersByConversationID(chatMessage.ConversationID)
-	if err != nil {
-		return
-	}
-
+	// var chatMessage request.CreateMessageRequest
+	// if err := mapstructure.Decode(message, &chatMessage); err != nil {
+	// 	// 消息解析失败，处理错误逻辑
+	// 	log.Println("Failed to parse chat message:", err)
+	// 	return
+	// }
+	// // 保存消息到数据库 TODO
+	// var msg *model.Message
+	// var err error
+	// if msg, err = s.messageService.CreateMessage(chatMessage); err != nil {
+	// 	// 消息保存失败，处理错误逻辑
+	// 	log.Println("Failed to save chat message:", err)
+	// 	return
+	// }
+	// // 通过conversation获取接受用户id
+	// userIDs, err := s.conversationService.GetUsersByConversationID(chatMessage.ConversationID)
+	// if err != nil {
+	// 	return
+	// }
+	userIDs := []string{"user1", "user2"}
 	// 广播消息给所有在线用户
 	for _, uid := range userIDs {
-		if uid == chatMessage.SenderID {
-			continue
-		}
+		// if uid == chatMessage.SenderID {
+		// 	continue
+		// }
 		conn, ok := s.connectionManager.GetConn(uid)
+		fmt.Println(ok)
 		if ok {
-			content := response.ToMessageResponse(msg)
-			err := conn.WriteJSON(content)
+			// content := response.ToMessageResponse(msg)
+			// err := conn.WriteJSON(content)
+			err := conn.WriteJSON(message)
 			if err != nil {
 				log.Println(err)
 			}
+		}
+	}
+}
+
+func (s *SocketServer) SendMessage(message *dto.V2TimMessage) {
+	// 解析消息
+	// var chatMessage request.CreateMessageRequest
+	// if err := mapstructure.Decode(message, &chatMessage); err != nil {
+	// 	// 消息解析失败，处理错误逻辑
+	// 	log.Println("Failed to parse chat message:", err)
+	// 	return
+	// }
+	// // 保存消息到数据库 TODO
+	// var msg *model.Message
+	// var err error
+	// if msg, err = s.messageService.CreateMessage(chatMessage); err != nil {
+	// 	// 消息保存失败，处理错误逻辑
+	// 	log.Println("Failed to save chat message:", err)
+	// 	return
+	// }
+	// // 通过conversation获取接受用户id
+	// userIDs, err := s.conversationService.GetUsersByConversationID(chatMessage.ConversationID)
+	// if err != nil {
+	// 	return
+	// }
+	newMsg := *message
+	conn, ok := s.connectionManager.GetConn(newMsg.UserID)
+	fmt.Println(ok)
+	if ok {
+		newMsg.UserID = newMsg.Sender
+		newMsg.IsSelf = false
+		content := map[string]interface{}{
+			"action": "RecvNewMessage",
+			"data":   newMsg,
+		}
+		err := conn.WriteJSON(content)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func (s *SocketServer) OnNewConversation(userID string, conversations []*dto.V2TimConversation) {
+	conn, ok := s.connectionManager.GetConn(userID)
+	if ok {
+		content := map[string]interface{}{
+			"action": "NewConversation",
+			"data":   conversations,
+		}
+		err := conn.WriteJSON(content)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+func (s *SocketServer) OnConversationChanged(userID string, conversations []*dto.V2TimConversation) {
+	conn, ok := s.connectionManager.GetConn(userID)
+	if ok {
+		content := map[string]interface{}{
+			"action": "ConversationChanged",
+			"data":   conversations,
+		}
+		err := conn.WriteJSON(content)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func (s *SocketServer) OnTotalUnreadMessageCountChanged(userID string, count int) {
+	conn, ok := s.connectionManager.GetConn(userID)
+	if ok {
+		content := map[string]interface{}{
+			"action": "TotalUnreadMessageCountChanged",
+			"data":   count,
+		}
+		err := conn.WriteJSON(content)
+		if err != nil {
+			log.Println(err)
 		}
 	}
 }

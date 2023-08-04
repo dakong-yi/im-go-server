@@ -8,6 +8,7 @@ import (
 	"github.com/dakong-yi/im-go-server/internal/model"
 	"github.com/dakong-yi/im-go-server/internal/repository"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -39,10 +40,22 @@ func (s *UserService) DeleteUser(user *model.User) error {
 	return s.userRepo.DeleteUser(user)
 }
 
+func (s *UserService) GetUserInfo(userIDs []string) ([]*response.UserResponse, error) {
+	users, err := s.userRepo.GetUserInfo(userIDs)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*response.UserResponse, 0)
+	for _, v := range users {
+		res = append(res, response.ToUserResponse(v))
+	}
+	return res, nil
+}
+
 func (service *UserService) Register(request request.CreateUserRequest) (*model.User, error) {
 	// 检查用户名是否已存在
 	existingUser, err := service.userRepo.GetUserByIdentifier(request.Username)
-	if err != nil {
+	if err != gorm.ErrRecordNotFound && err != nil {
 		return nil, err
 	}
 	if existingUser != nil {
@@ -51,6 +64,7 @@ func (service *UserService) Register(request request.CreateUserRequest) (*model.
 
 	// 创建用户对象
 	user := &model.User{
+		UserID:        request.Username,
 		Identifier:    request.Username,
 		Email:         request.Email,
 		NickName:      request.NickName,

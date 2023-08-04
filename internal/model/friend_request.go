@@ -4,6 +4,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const FriendRequestStatusAccepted = "accepted"
+const FriendRequestStatusRejected = "rejected"
+const FriendRequestStatusPending = "pending"
+
 type FriendRequest struct {
 	gorm.Model
 	UserID   string // 用户ID

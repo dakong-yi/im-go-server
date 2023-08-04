@@ -10,9 +10,9 @@ type CreateUserRequest struct {
 	SelfSignature string `json:"selfSignature"`
 	Gender        int    `json:"gender"`
 	AllowType     int    `json:"allowType"`
-	Role          string `json:"role"`
+	Role          int    `json:"role"`
 	Level         int    `json:"level"`
-	Birthday      string `json:"birthday"`
+	Birthday      int    `json:"birthday"`
 }
 
 // UpdateUserRequest 定义更新用户信息的请求结构体
@@ -23,13 +23,16 @@ type UpdateUserRequest struct {
 	SelfSignature string `json:"selfSignature"`
 	Gender        int    `json:"gender"`
 	AllowType     int    `json:"allowType"`
-	Role          string `json:"role"`
+	Role          int    `json:"role"`
 	Level         int    `json:"level"`
-	Birthday      string `json:"birthday"`
+	Birthday      int    `json:"birthday"`
 }
 
 // LoginRequest 定义用户登录的请求结构体
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+type GetUserInfoRequest struct {
+	UserIDs []string `json:"user_ids"`
 }

@@ -16,7 +16,7 @@ func (r *FriendRequestRepoImpl) CreateFriendRequest(request *model.FriendRequest
 	return db.DB.Create(request).Error
 }
 
-func (r *FriendRequestRepoImpl) GetFriendRequestByID(id uint) (*model.FriendRequest, error) {
+func (r *FriendRequestRepoImpl) GetFriendRequestByID(id int) (*model.FriendRequest, error) {
 	var request model.FriendRequest
 	err := db.DB.First(&request, id).Error
 	if err != nil {
@@ -52,10 +52,10 @@ func (r *FriendRequestRepoImpl) GetFriendRequestsByFriendID(friendID string) ([]
 	return requests, nil
 }
 
-func (r *FriendRequestRepoImpl) UpdateFriendRequestStatus(requestID uint, status string) error {
+func (r *FriendRequestRepoImpl) UpdateFriendRequestStatus(requestID int, status string) error {
 	return db.DB.Model(&model.FriendRequest{}).Where("id = ?", requestID).Update("status", status).Error
 }
 
-func (r *FriendRequestRepoImpl) DeleteFriendRequest(requestID uint) error {
+func (r *FriendRequestRepoImpl) DeleteFriendRequest(requestID int) error {
 	return db.DB.Delete(&model.FriendRequest{}, requestID).Error
 }

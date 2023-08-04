@@ -3,6 +3,7 @@ package http
 import (
 	"log"
 
+	"github.com/dakong-yi/im-go-server/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,8 +12,10 @@ type Server struct {
 }
 
 func NewServer() *Server {
+	router := gin.Default()
+	router.Use(middleware.RequestLoggerMiddleware())
 	return &Server{
-		Router: gin.Default(),
+		Router: router,
 	}
 }
 func (s *Server) Start() error {

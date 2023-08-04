@@ -36,28 +36,15 @@ func (r *UserConversationRepoImpl) RemoveUserFromConversation(userID string, con
 	return nil
 }
 
-func (r *UserConversationRepoImpl) GetConversationsByUserID(userID string) ([]int, error) {
-	var conversationIDs []int
+func (r *UserConversationRepoImpl) GetConversationsByUserID(userID string) ([]*model.UserConversation, error) {
+	var conversations []*model.UserConversation
 
-	// 查询用户对话列表的 conversation_id
-	rows, err := db.DB.
-		Select("user_conversations.conversation_id").
-		Where("user_conversations.user_id = ?", userID).
-		Rows()
+	// 查询用户对话列表的
+	err := db.DB.Where("owner_id = ?", userID).Find(&conversations).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var conversationID int
-		if err := rows.Scan(&conversationID); err != nil {
-			return nil, err
-		}
-		conversationIDs = append(conversationIDs, conversationID)
-	}
-
-	return conversationIDs, nil
+	return conversations, nil
 }
 
 func (r *UserConversationRepoImpl) GetUnreadMessageCount(userID string) (int, error) {

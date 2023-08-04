@@ -24,7 +24,7 @@ func InitDB() error {
 		panic(fmt.Sprintf("创建mysql客户端失败: %v,%s", DB, err))
 	}
 	// Perform auto-migration
-	DB.AutoMigrate(&model.Conversation{}, &model.Message{}, &model.UserConversation{})
+	DB.AutoMigrate(&model.User{}, &model.Conversation{}, &model.Message{}, &model.UserConversation{}, &model.Blacklist{}, &model.Friendship{}, &model.FriendRequest{})
 
 	// Return nil if there is no error
 	return nil

@@ -32,6 +32,14 @@ func (r *UserRepositoryImpl) GetUserByUserID(userID string) (*model.User, error)
 	}
 	return &user, nil
 }
+func (r *UserRepositoryImpl) GetUserInfo(userIDs []string) ([]*model.User, error) {
+	var user []*model.User
+	err := db.DB.Where("user_id in ?", userIDs).Find(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
 
 func (r *UserRepositoryImpl) UpdateUser(user *model.User) error {
 	return db.DB.Save(user).Error

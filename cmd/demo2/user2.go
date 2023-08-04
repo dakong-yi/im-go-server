@@ -24,6 +24,7 @@ func main() {
 		// {"action":"login","data":{"user_id":"user2"}}
 		// chat
 		// {"action":"chat","data":{"conversation_id":1,"sender_id":"user2","content":"iamuser2","type":"private"}}
+		// {"action":"chat","data":{"msgID":"1","timestamp":1635993600,"userID":"user2","sender":"user2","nickName":"John","faceUrl":"https://www.bugela.com/cjpic/frombd/1/253/1943132031/773911012.jpg","elemType":1,"textElem":{"text":"Hello,thisisamocktextmessage"}}}
 		fmt.Println(message)
 		err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 		if err != nil {

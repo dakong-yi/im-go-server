@@ -9,9 +9,9 @@ type UserResponse struct {
 	SelfSignature string `json:"selfSignature"`
 	Gender        int    `json:"gender"`
 	AllowType     int    `json:"allowType"`
-	Role          string `json:"role"`
+	Role          int    `json:"role"`
 	Level         int    `json:"level"`
-	Birthday      string `json:"birthday"`
+	Birthday      int    `json:"birthday"`
 }
 
 func ToUserResponse(user *model.User) *UserResponse {

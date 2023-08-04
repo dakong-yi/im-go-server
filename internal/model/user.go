@@ -15,8 +15,8 @@ type User struct {
 	SelfSignature string `json:"self_signature"`
 	Gender        int    `json:"gender"`
 	AllowType     int    `json:"allow_type"`
-	Role          string `json:"role"`
+	Role          int    `json:"role"`
 	Level         int    `json:"level"`
-	Birthday      string `json:"birthday"`
+	Birthday      int    `json:"birthday"`
 	// 其他字段...
 }

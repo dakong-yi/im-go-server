@@ -15,9 +15,9 @@ func NewFriendshipRepoImpl() FriendshipRepository {
 	return &FriendshipRepoImpl{}
 }
 
-func (r *FriendshipRepoImpl) GetFriends(userID string) ([]*model.User, error) {
-	var friends []*model.User
-	err := db.DB.Model(&model.Friendship{}).Where("user_id = ? OR friend_id = ?", userID, userID).Find(&friends).Error
+func (r *FriendshipRepoImpl) GetFriends(userID string) ([]*model.Friendship, error) {
+	var friends []*model.Friendship
+	err := db.DB.Model(&model.Friendship{}).Where("user_id = ?  ", userID).Find(&friends).Error
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,14 @@ func (r *FriendshipRepoImpl) GetFriendship(userID, friendID string) (*model.Frie
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("not found")
 		}
+		return nil, err
+	}
+	return friendship, nil
+}
+func (r *FriendshipRepoImpl) GetFriendsInfo(userID string, friendID []string) ([]*model.Friendship, error) {
+	friendship := []*model.Friendship{}
+	err := db.DB.Where("(user_id = ? AND friend_id in ?)", userID, friendID).Find(&friendship).Error
+	if err != nil {
 		return nil, err
 	}
 	return friendship, nil
